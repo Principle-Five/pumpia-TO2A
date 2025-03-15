@@ -135,7 +135,7 @@ class TO2AContextManager(PhantomContextManager):
 
         self.inserts_frame = ttk.Labelframe(self, text="Inserts")
 
-        self.mtf_var = tk.StringVar(self, inv_side_map["bottom"])
+        self.mtf_var = tk.StringVar(self, inv_side_map["left"])
         self.mtf_combo = ttk.Combobox(self.inserts_frame,
                                       textvariable=self.mtf_var,
                                       values=side_opts,
@@ -145,7 +145,7 @@ class TO2AContextManager(PhantomContextManager):
         self.mtf_label.grid(column=0, row=1, sticky="nsew")
         self.mtf_combo.grid(column=1, row=1, sticky="nsew")
 
-        self.wedge_var = tk.StringVar(self, inv_side_map["left"])
+        self.wedge_var = tk.StringVar(self, inv_side_map["bottom"])
         self.wedge_combo = ttk.Combobox(self.inserts_frame,
                                         textvariable=self.wedge_var,
                                         values=side_opts,
@@ -180,8 +180,8 @@ class TO2AContextManager(PhantomContextManager):
                                boundary_context.xmax,
                                boundary_context.ymin,
                                boundary_context.ymax,
-                               mtf_side,
-                               wedge_side)
+                               wedge_side,
+                               mtf_side)
 
         pixel_size = image.pixel_size
         pixel_height = pixel_size[1]
@@ -228,8 +228,8 @@ class TO2AContextManager(PhantomContextManager):
                                          right_box_xmin:right_box_xmax])]
         sort_box_means = sorted(box_means)
 
-        mtf_mean = int(sort_box_means[0])
-        wedge_mean = int(sort_box_means[1])
+        mtf_mean = sort_box_means[0]
+        wedge_mean = sort_box_means[1]
 
         if mtf_mean == box_means[0]:
             mtf_side = "top"
@@ -256,8 +256,8 @@ class TO2AContextManager(PhantomContextManager):
                            boundary_context.xmax,
                            boundary_context.ymin,
                            boundary_context.ymax,
-                           mtf_side,
-                           wedge_side)
+                           wedge_side,
+                           mtf_side)
 
 
 class TO2AContextManagerGenerator(PhantomContextManagerGenerator[TO2AContextManager]):
