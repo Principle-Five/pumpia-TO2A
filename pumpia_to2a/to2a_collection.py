@@ -10,6 +10,7 @@ from pumpia.file_handling.dicom_structures import Series
 
 from .to2a_context import TO2AContextManagerGenerator
 from .modules.slice_width import TO2ASliceWidth
+from .modules.phantom_width import TO2APhantomWidth
 
 
 class TO2ACollection(BaseCollection):
@@ -21,11 +22,13 @@ class TO2ACollection(BaseCollection):
     viewer = MonochromeDicomViewerIO(row=0, column=0)
 
     slice_width = TO2ASliceWidth()
+    phantom_width = TO2APhantomWidth()
 
     results = OutputFrame()
 
     def load_outputs(self):
         self.results.register_output(self.slice_width.slice_width)
+        self.results.register_output(self.phantom_width.average_width)
 
     def on_image_load(self, viewer: BaseViewer) -> None:
         if viewer is self.viewer:
@@ -35,3 +38,4 @@ class TO2ACollection(BaseCollection):
                     slice_index = image.num_slices // 2
                     image = image.instances[slice_index]
                 self.slice_width.viewer.load_image(image)
+                self.phantom_width.viewer.load_image(image)
