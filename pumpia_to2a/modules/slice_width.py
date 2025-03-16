@@ -3,6 +3,7 @@ Slice width using TO2A wedges
 """
 import math
 import numpy as np
+from scipy.optimize import curve_fit
 
 from pumpia.module_handling.modules import PhantomModule
 from pumpia.module_handling.in_outs.roi_ios import BaseInputROI, InputRectangleROI
@@ -10,20 +11,20 @@ from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
 from pumpia.module_handling.in_outs.simple import FloatInput, PercInput, FloatOutput, StringOutput
 from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
-from pumpia.utilities.array_utils import nth_max_widest_peak
+from pumpia.utilities.feature_utils import flat_top_gauss_integral
 
 from ..to2a_context import TO2AContextManagerGenerator, TO2AContext
 
 # distances in mm
-INSIDE_OFFSET = 41
-OUTSIDE_OFFSET = 62
+INSIDE_OFFSET = 40
+OUTSIDE_OFFSET = 61
 ROI_WIDTH = 14
 ROI_LENGTH = 70
 
 
 class TO2ASliceWidth(PhantomModule):
     """
-    Calculates slice width using TO2A wedges
+    Calculates slice width using TO2A wedges by fitting to a flat top gaussian
     """
     context_manager_generator = TO2AContextManagerGenerator()
 
@@ -130,23 +131,67 @@ class TO2ASliceWidth(PhantomModule):
             and self.outside_wedge.roi is not None
                 and self.viewer.image is not None):
             if self.wedge_dir.value == "Vertical":
-                inside_prof = np.abs(np.diff(self.inside_wedge.roi.v_profile))
-                outide_prof = np.abs(np.diff(self.outside_wedge.roi.v_profile))
+                inside_prof = self.inside_wedge.roi.v_profile
+                outside_prof = self.outside_wedge.roi.v_profile
                 pix_size = self.viewer.image.pixel_size[1]
             else:
-                inside_prof = np.abs(np.diff(self.inside_wedge.roi.h_profile))
-                outide_prof = np.abs(np.diff(self.outside_wedge.roi.h_profile))
+                inside_prof = self.inside_wedge.roi.h_profile
+                outside_prof = self.outside_wedge.roi.h_profile
                 pix_size = self.viewer.image.pixel_size[2]
 
-            divisor = 100 / self.max_perc.value
+            inside_prof_diff = np.diff(inside_prof)
+            outside_prof_diff = np.diff(outside_prof)
 
-            inside_fwhm = nth_max_widest_peak(inside_prof, divisor)
-            outside_fwhm = nth_max_widest_peak(outide_prof, divisor)
+            init_in_max = np.max(inside_prof_diff)
+            init_in_min = np.min(inside_prof_diff)
+            if abs(init_in_max) > abs(init_in_min):
+                init_in_amp = init_in_max
+            else:
+                init_in_amp = init_in_min
+            init_in_bl = np.min(inside_prof)
+            init_in_c = self.expected_width.value / 2
+            init_in_a = inside_prof_diff.shape[0] / 2 - init_in_c
+            init_in_b = inside_prof_diff.shape[0] / 2 + init_in_c
+            init_in = (init_in_a, init_in_b, init_in_c, init_in_amp, init_in_bl)
+            in_shp = list(inside_prof_diff.shape)
+            in_shp[0] = in_shp[0] + 1
+            in_indeces = np.indices(in_shp)[0]
+
+            in_fit, _ = curve_fit(flat_top_gauss_integral,
+                                  in_indeces,
+                                  inside_prof,
+                                  init_in)
+
+            init_out_max = np.max(outside_prof_diff)
+            init_out_min = np.min(outside_prof_diff)
+            if abs(init_out_max) > abs(init_out_min):
+                init_out_amp = init_out_max
+            else:
+                init_out_amp = init_out_min
+            init_out_bl = np.min(outside_prof)
+            init_out_c = self.expected_width.value / 2
+            init_out_a = outside_prof_diff.shape[0] / 2 - init_out_c
+            init_out_b = outside_prof_diff.shape[0] / 2 + init_out_c
+            init_out = (init_out_a, init_out_b, init_out_c, init_out_amp, init_out_bl)
+            out_shp = list(outside_prof_diff.shape)
+            out_shp[0] = out_shp[0] + 1
+            out_indeces = np.indices(out_shp)[0]
+
+            out_fit, _ = curve_fit(flat_top_gauss_integral,
+                                   out_indeces,
+                                   outside_prof,
+                                   init_out)
+
+            divisor = 100 / self.max_perc.value
+            c_coeff = 2 * math.sqrt(2 * math.log(divisor))
+
+            inside_fwhm = abs(in_fit[1] - in_fit[0]) + c_coeff * in_fit[2]
+            outside_fwhm = abs(out_fit[1] - out_fit[0]) + c_coeff * out_fit[2]
 
             tan_theta = self.tan_theta.value
 
-            inside_width = inside_fwhm.difference * tan_theta * pix_size
-            outside_width = outside_fwhm.difference * tan_theta * pix_size
+            inside_width = inside_fwhm * tan_theta * pix_size
+            outside_width = outside_fwhm * tan_theta * pix_size
 
             self.inside_wedge_width.value = inside_width
             self.outside_wedge_width.value = outside_width
