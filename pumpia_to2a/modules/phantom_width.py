@@ -1,5 +1,5 @@
 """
-Phantom width of TO2A
+Phantom width of TO2A Phantom
 """
 import math
 import statistics
