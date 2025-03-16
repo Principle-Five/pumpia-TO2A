@@ -8,6 +8,7 @@ from typing import overload, Literal
 
 import numpy as np
 
+from pumpia.image_handling.roi_structures import RectangleROI, PointROI
 from pumpia.file_handling.dicom_structures import Series, Instance
 from pumpia.module_handling.manager import Manager
 from pumpia.utilities.typing import DirectionType, SideType
@@ -133,7 +134,7 @@ class TO2AContextManager(PhantomContextManager):
                                                        text="Bound Box Options",
                                                        **kw)
 
-        self.inserts_frame = ttk.Labelframe(self, text="Inserts")
+        self.inserts_frame = ttk.Labelframe(self, text="TO2A")
 
         self.mtf_var = tk.StringVar(self, inv_side_map["left"])
         self.mtf_combo = ttk.Combobox(self.inserts_frame,
@@ -154,6 +155,12 @@ class TO2AContextManager(PhantomContextManager):
         self.wedge_label = ttk.Label(self.inserts_frame, text="Wedges Side")
         self.wedge_label.grid(column=0, row=2, sticky="nsew")
         self.wedge_combo.grid(column=1, row=2, sticky="nsew")
+
+        self.show_boxes_var = tk.BooleanVar(self)
+        self.show_boxes_button = ttk.Checkbutton(self.inserts_frame,
+                                                 text="Show Boxes",
+                                                 variable=self.show_boxes_var)
+        self.show_boxes_button.grid(column=0, row=3, columnspan=2, sticky="nsew")
 
         if self.direction[0].lower() == "h":
             self.auto_phantom_manager.grid(column=0, row=0, sticky="nsew")
@@ -249,8 +256,66 @@ class TO2AContextManager(PhantomContextManager):
         elif wedge_mean == box_means[3]:
             wedge_side = "right"
 
+        if ((mtf_side in ["top", "bottom"]
+             and wedge_side in ["top", "bottom"])
+            or (mtf_side in ["left", "right"]
+                and wedge_side in ["left", "right"])):
+            wedge_mean = sort_box_means[2]
+            if wedge_mean == box_means[0]:
+                wedge_side = "top"
+            elif wedge_mean == box_means[1]:
+                wedge_side = "bottom"
+            elif wedge_mean == box_means[2]:
+                wedge_side = "left"
+            elif wedge_mean == box_means[3]:
+                wedge_side = "right"
+
         self.mtf_var.set(inv_side_map[mtf_side])
         self.wedge_var.set(inv_side_map[wedge_side])
+
+        if self.show_boxes_var.get():
+            top_roi = RectangleROI(image,
+                                   top_box_xmin,
+                                   top_box_ymin,
+                                   top_box_xmax,
+                                   top_box_ymax,
+                                   replace=True,
+                                   name="Top")
+            self.manager.add_roi(top_roi)
+
+            bottom_roi = RectangleROI(image,
+                                      bottom_box_xmin,
+                                      bottom_box_ymin,
+                                      bottom_box_xmax,
+                                      bottom_box_ymax,
+                                      replace=True,
+                                      name="Bottom")
+            self.manager.add_roi(bottom_roi)
+
+            left_roi = RectangleROI(image,
+                                    left_box_xmin,
+                                    left_box_ymin,
+                                    left_box_xmax,
+                                    left_box_ymax,
+                                    replace=True,
+                                    name="Left")
+            self.manager.add_roi(left_roi)
+
+            right_roi = RectangleROI(image,
+                                     right_box_xmin,
+                                     right_box_ymin,
+                                     right_box_xmax,
+                                     right_box_ymax,
+                                     replace=True,
+                                     name="Right")
+            self.manager.add_roi(right_roi)
+
+            cent = PointROI(image,
+                            round(boundary_context.xcent),
+                            round(boundary_context.ycent),
+                            name="Centre",
+                            replace=True)
+            self.manager.add_roi(cent)
 
         return TO2AContext(boundary_context.xmin,
                            boundary_context.xmax,
