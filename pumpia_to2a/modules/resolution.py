@@ -7,6 +7,7 @@ from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
 from pumpia.module_handling.in_outs.simple import PercInput, StringOutput
 from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
+from pumpia.file_handling.dicom_tags import MRTags
 from pumpia.utilities.array_utils import nth_max_troughs
 
 from ..to2a_context import TO2AContextManagerGenerator, TO2AContext
@@ -41,13 +42,15 @@ class TO2AResolution(PhantomModule):
 
     max_perc = PercInput(50, verbose_name="Width position (% of max)")
 
-    horizontal_2 = StringOutput(verbose_name="Horizontal 2mm insert seen")
-    horizontal_1_5 = StringOutput(verbose_name="Horizontal 1.5mm insert seen")
-    horizontal_1 = StringOutput(verbose_name="Horizontal 1mm insert seen")
+    phase_dir = StringOutput(verbose_name="Phase Encode Direction")
 
-    vertical_2 = StringOutput(verbose_name="Vertical 2mm insert seen")
-    vertical_1_5 = StringOutput(verbose_name="Vertical 1.5mm insert seen")
-    vertical_1 = StringOutput(verbose_name="Vertical 1mm insert seen")
+    phase_2 = StringOutput(verbose_name="Phase Encode Direction 2mm")
+    phase_1_5 = StringOutput(verbose_name="Phase Encode Direction 1.5mm")
+    phase_1 = StringOutput(verbose_name="Phase Encode Direction 1mm")
+
+    freq_2 = StringOutput(verbose_name="Frequency Encode Direction 2mm")
+    freq_1_5 = StringOutput(verbose_name="Frequency Encode Direction 1.5mm")
+    freq_1 = StringOutput(verbose_name="Frequency Encode Direction 1mm")
 
     horizontal_2_roi = InputRectangleROI(name="Horizontal 2mm")
     horizontal_1_5_roi = InputRectangleROI(name="Horizontal 1.5mm")
@@ -287,32 +290,71 @@ class TO2AResolution(PhantomModule):
             horizontal_1_5_n_seen = len(nth_max_troughs(horizontal_1_5_prof, divisor))
             horizontal_2_n_seen = len(nth_max_troughs(horizontal_2_prof, divisor))
 
-            if vertical_1_n_seen == 5:
-                self.vertical_1.value = TICK
+            if isinstance(self.viewer.image, Series):
+                phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection,0)
             else:
-                self.vertical_1.value = CROSS
+                phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection)
 
-            if vertical_1_5_n_seen == 5:
-                self.vertical_1_5.value = TICK
-            else:
-                self.vertical_1_5.value = CROSS
+            self.phase_dir.value = phase_dir # type: ignore
 
-            if vertical_2_n_seen == 5:
-                self.vertical_2.value = TICK
-            else:
-                self.vertical_2.value = CROSS
+            if phase_dir == "ROW":
+                if vertical_1_n_seen == 5:
+                    self.phase_1.value = TICK
+                else:
+                    self.phase_1.value = CROSS
 
-            if horizontal_1_n_seen == 5:
-                self.horizontal_1.value = TICK
-            else:
-                self.horizontal_1.value = CROSS
+                if vertical_1_5_n_seen == 5:
+                    self.phase_1_5.value = TICK
+                else:
+                    self.phase_1_5.value = CROSS
 
-            if horizontal_1_5_n_seen == 5:
-                self.horizontal_1_5.value = TICK
-            else:
-                self.horizontal_1_5.value = CROSS
+                if vertical_2_n_seen == 5:
+                    self.phase_2.value = TICK
+                else:
+                    self.phase_2.value = CROSS
 
-            if horizontal_2_n_seen == 5:
-                self.horizontal_2.value = TICK
+                if horizontal_1_n_seen == 5:
+                    self.freq_1.value = TICK
+                else:
+                    self.freq_1.value = CROSS
+
+                if horizontal_1_5_n_seen == 5:
+                    self.freq_1_5.value = TICK
+                else:
+                    self.freq_1_5.value = CROSS
+
+                if horizontal_2_n_seen == 5:
+                    self.freq_2.value = TICK
+                else:
+                    self.freq_2.value = CROSS
+
             else:
-                self.horizontal_2.value = CROSS
+                if horizontal_1_n_seen == 5:
+                    self.phase_1.value = TICK
+                else:
+                    self.phase_1.value = CROSS
+
+                if horizontal_1_5_n_seen == 5:
+                    self.phase_1_5.value = TICK
+                else:
+                    self.phase_1_5.value = CROSS
+
+                if horizontal_2_n_seen == 5:
+                    self.phase_2.value = TICK
+                else:
+                    self.phase_2.value = CROSS
+
+                if vertical_1_n_seen == 5:
+                    self.freq_1.value = TICK
+                else:
+                    self.freq_1.value = CROSS
+
+                if vertical_1_5_n_seen == 5:
+                    self.freq_1_5.value = TICK
+                else:
+                    self.freq_1_5.value = CROSS
+
+                if vertical_2_n_seen == 5:
+                    self.freq_2.value = TICK
+                else:
+                    self.freq_2.value = CROSS
