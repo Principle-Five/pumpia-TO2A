@@ -31,12 +31,12 @@ class TO2ACollection(BaseCollection):
     def load_outputs(self):
         self.results.register_output(self.slice_width.slice_width)
         self.results.register_output(self.phantom_width.average_width)
-        self.results.register_output(self.resolution.horizontal_2)
-        self.results.register_output(self.resolution.horizontal_1_5)
-        self.results.register_output(self.resolution.horizontal_1)
-        self.results.register_output(self.resolution.vertical_2)
-        self.results.register_output(self.resolution.vertical_1_5)
-        self.results.register_output(self.resolution.vertical_1)
+        self.results.register_output(self.resolution.phase_2)
+        self.results.register_output(self.resolution.phase_1_5)
+        self.results.register_output(self.resolution.phase_1)
+        self.results.register_output(self.resolution.freq_2)
+        self.results.register_output(self.resolution.freq_1_5)
+        self.results.register_output(self.resolution.freq_1)
 
     def on_image_load(self, viewer: BaseViewer) -> None:
         if viewer is self.viewer:
