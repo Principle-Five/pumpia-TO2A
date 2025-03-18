@@ -4,7 +4,7 @@ Resolution inserts of TO2A Phantom
 from pumpia.module_handling.modules import PhantomModule
 from pumpia.module_handling.in_outs.roi_ios import BaseInputROI, InputRectangleROI
 from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
-from pumpia.module_handling.in_outs.simple import PercInput, StringOutput
+from pumpia.module_handling.in_outs.simple import PercInput, StringOutput, FloatOutput
 from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
 from pumpia.file_handling.dicom_tags import MRTags
@@ -43,6 +43,8 @@ class TO2AResolution(PhantomModule):
     max_perc = PercInput(50, verbose_name="Width position (% of max)")
 
     phase_dir = StringOutput(verbose_name="Phase Encode Direction")
+    phase_pix = FloatOutput(verbose_name="Phase Pixel Size")
+    freq_pix = FloatOutput(verbose_name="Frequency Pixel Size")
 
     phase_2 = StringOutput(verbose_name="Phase Encode Direction 2mm")
     phase_1_5 = StringOutput(verbose_name="Phase Encode Direction 1.5mm")
@@ -297,7 +299,13 @@ class TO2AResolution(PhantomModule):
 
             self.phase_dir.value = phase_dir # type: ignore
 
+            pixel_size = self.viewer.image.pixel_size
+            pixel_height = pixel_size[1]
+            pixel_width = pixel_size[2]
+
             if phase_dir == "ROW":
+                self.phase_pix.value = pixel_height
+                self.freq_pix.value = pixel_width
                 if vertical_1_n_seen == 5:
                     self.phase_1.value = TICK
                 else:
@@ -329,6 +337,8 @@ class TO2AResolution(PhantomModule):
                     self.freq_2.value = CROSS
 
             else:
+                self.phase_pix.value = pixel_width
+                self.freq_pix.value = pixel_height
                 if horizontal_1_n_seen == 5:
                     self.phase_1.value = TICK
                 else:
