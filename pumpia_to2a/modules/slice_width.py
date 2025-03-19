@@ -139,6 +139,8 @@ class TO2ASliceWidth(PhantomModule):
                 outside_prof = self.outside_wedge.roi.h_profile
                 pix_size = self.viewer.image.pixel_size[2]
 
+            self.expected_width.value = self.viewer.image.pixel_size[0]
+
             inside_prof_diff = np.diff(inside_prof)
             outside_prof_diff = np.diff(outside_prof)
 
