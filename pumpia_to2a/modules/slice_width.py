@@ -33,7 +33,8 @@ class TO2ASliceWidth(PhantomModule):
     tan_theta = FloatInput(0.25, verbose_name="Tan of wedge angle")
     max_perc = PercInput(50, verbose_name="Width position (% of max)")
 
-    wedge_dir = StringOutput(verbose_name="Wedge Direction")
+    wedge_dir = StringOutput(verbose_name="Wedge Direction", reset_on_analysis = False)
+
     expected_width = FloatOutput()
     inside_wedge_width = FloatOutput()
     outside_wedge_width = FloatOutput()
