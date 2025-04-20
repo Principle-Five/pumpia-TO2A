@@ -3,6 +3,11 @@ This repository contains code to analyse the TO2A phantom using the [PumpIA](htt
 
 It is currently not validated and is provided as is, see the license for more information.
 
+The collection contains the following tests:
+- Phantom Width (Geometric linearity and distortion)
+- Resolution
+- Slice Width
+
 # Usage
 
 Users should make themselves familiar with the [PumpIA user interface](https://principle-five.github.io/pumpia/usage/user_interface.html)
