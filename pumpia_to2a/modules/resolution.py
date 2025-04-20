@@ -37,22 +37,33 @@ class TO2AResolution(PhantomModule):
     Calculates resolution using TO2A phantom inserts
     """
     context_manager_generator = TO2AContextManagerGenerator()
+    show_draw_rois_button = True
+    show_analyse_button = True
 
     viewer = MonochromeDicomViewerIO(row=0, column=0)
 
     max_perc = PercInput(50, verbose_name="Width position (% of max)")
 
-    phase_dir = StringOutput(verbose_name="Phase Encode Direction")
-    phase_pix = FloatOutput(verbose_name="Phase Pixel Size")
-    freq_pix = FloatOutput(verbose_name="Frequency Pixel Size")
+    phase_dir = StringOutput(verbose_name="Phase Encode Direction",
+                             reset_on_analysis=True)
+    phase_pix = FloatOutput(verbose_name="Phase Pixel Size",
+                            reset_on_analysis=True)
+    freq_pix = FloatOutput(verbose_name="Frequency Pixel Size",
+                           reset_on_analysis=True)
 
-    phase_2 = StringOutput(verbose_name="Phase Encode Direction 2mm")
-    phase_1_5 = StringOutput(verbose_name="Phase Encode Direction 1.5mm")
-    phase_1 = StringOutput(verbose_name="Phase Encode Direction 1mm")
+    phase_2 = StringOutput(verbose_name="Phase Encode Direction 2mm",
+                           reset_on_analysis=True)
+    phase_1_5 = StringOutput(verbose_name="Phase Encode Direction 1.5mm",
+                             reset_on_analysis=True)
+    phase_1 = StringOutput(verbose_name="Phase Encode Direction 1mm",
+                           reset_on_analysis=True)
 
-    freq_2 = StringOutput(verbose_name="Frequency Encode Direction 2mm")
-    freq_1_5 = StringOutput(verbose_name="Frequency Encode Direction 1.5mm")
-    freq_1 = StringOutput(verbose_name="Frequency Encode Direction 1mm")
+    freq_2 = StringOutput(verbose_name="Frequency Encode Direction 2mm",
+                          reset_on_analysis=True)
+    freq_1_5 = StringOutput(verbose_name="Frequency Encode Direction 1.5mm",
+                            reset_on_analysis=True)
+    freq_1 = StringOutput(verbose_name="Frequency Encode Direction 1mm",
+                          reset_on_analysis=True)
 
     horizontal_2_roi = InputRectangleROI(name="Horizontal 2mm")
     horizontal_1_5_roi = InputRectangleROI(name="Horizontal 1.5mm")
@@ -293,11 +304,11 @@ class TO2AResolution(PhantomModule):
             horizontal_2_n_seen = len(nth_max_troughs(horizontal_2_prof, divisor))
 
             if isinstance(self.viewer.image, Series):
-                phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection,0)
+                phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection, 0)
             else:
                 phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection)
 
-            self.phase_dir.value = phase_dir # type: ignore
+            self.phase_dir.value = phase_dir  # type: ignore
 
             pixel_size = self.viewer.image.pixel_size
             pixel_height = pixel_size[1]

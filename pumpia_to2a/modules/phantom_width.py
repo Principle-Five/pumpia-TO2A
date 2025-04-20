@@ -25,6 +25,8 @@ class TO2APhantomWidth(PhantomModule):
     Calculates TO2A phantom width
     """
     context_manager_generator = TO2AContextManagerGenerator()
+    show_draw_rois_button = True
+    show_analyse_button = True
 
     viewer = MonochromeDicomViewerIO(row=0, column=0)
 
@@ -37,14 +39,14 @@ class TO2APhantomWidth(PhantomModule):
     bool_4_10 = BoolInput(verbose_name="Include 4-10 in Average")
     bool_5_11 = BoolInput(verbose_name="Include 5-11 in Average")
 
-    width_12_6 = FloatOutput(verbose_name="12-6 Width")
-    width_1_7 = FloatOutput(verbose_name="1-7 Width")
-    width_2_8 = FloatOutput(verbose_name="2-8 Width")
-    width_3_9 = FloatOutput(verbose_name="3-9 Width")
-    width_4_10 = FloatOutput(verbose_name="4-10 Width")
-    width_5_11 = FloatOutput(verbose_name="5-11 Width")
+    width_12_6 = FloatOutput(verbose_name="12-6 Width", reset_on_analysis=True)
+    width_1_7 = FloatOutput(verbose_name="1-7 Width", reset_on_analysis=True)
+    width_2_8 = FloatOutput(verbose_name="2-8 Width", reset_on_analysis=True)
+    width_3_9 = FloatOutput(verbose_name="3-9 Width", reset_on_analysis=True)
+    width_4_10 = FloatOutput(verbose_name="4-10 Width", reset_on_analysis=True)
+    width_5_11 = FloatOutput(verbose_name="5-11 Width", reset_on_analysis=True)
 
-    average_width = FloatOutput(verbose_name="Average Phantom Width")
+    average_width = FloatOutput(verbose_name="Average Phantom Width", reset_on_analysis=True)
 
     line_12_6 = InputLineROI(name="12-6 Line")
     line_1_7 = InputLineROI(name="1-7 Line")
