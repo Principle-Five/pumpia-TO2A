@@ -8,10 +8,10 @@ from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
 from pumpia.widgets.viewers import BaseViewer
 from pumpia.file_handling.dicom_structures import Series
 
-from .to2a_context import TO2AContextManagerGenerator
-from .modules.slice_width import TO2ASliceWidth
-from .modules.phantom_width import TO2APhantomWidth
-from .modules.resolution import TO2AResolution
+from pumpia_to2a.to2a_context import TO2AContextManagerGenerator
+from pumpia_to2a.modules.slice_width import TO2ASliceWidth
+from pumpia_to2a.modules.phantom_width import TO2APhantomWidth
+from pumpia_to2a.modules.resolution import TO2AResolution
 
 
 class TO2ACollection(BaseCollection):
