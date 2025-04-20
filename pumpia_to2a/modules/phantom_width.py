@@ -12,7 +12,7 @@ from pumpia.image_handling.roi_structures import LineROI
 from pumpia.file_handling.dicom_structures import Series
 from pumpia.utilities.array_utils import nth_max_bounds
 
-from ..to2a_context import TO2AContextManagerGenerator, TO2AContext
+from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
 
 # distances in mm
 HALF_LINE_LENGTH = 100

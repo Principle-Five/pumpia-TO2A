@@ -13,7 +13,7 @@ from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
 from pumpia.utilities.feature_utils import flat_top_gauss_integral
 
-from ..to2a_context import TO2AContextManagerGenerator, TO2AContext
+from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
 
 # distances in mm
 INSIDE_OFFSET = 40

@@ -10,7 +10,7 @@ from pumpia.file_handling.dicom_structures import Series
 from pumpia.file_handling.dicom_tags import MRTags
 from pumpia.utilities.array_utils import nth_max_troughs
 
-from ..to2a_context import TO2AContextManagerGenerator, TO2AContext
+from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
 
 # distances in mm
 WIDTHS = 11
