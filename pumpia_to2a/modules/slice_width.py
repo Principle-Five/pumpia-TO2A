@@ -27,18 +27,20 @@ class TO2ASliceWidth(PhantomModule):
     Calculates slice width using TO2A wedges by fitting to a flat top gaussian
     """
     context_manager_generator = TO2AContextManagerGenerator()
+    show_draw_rois_button = True
+    show_analyse_button = True
 
     viewer = MonochromeDicomViewerIO(row=0, column=0)
 
     tan_theta = FloatInput(0.25, verbose_name="Tan of wedge angle")
     max_perc = PercInput(50, verbose_name="Width position (% of max)")
 
-    wedge_dir = StringOutput(verbose_name="Wedge Direction", reset_on_analysis = False)
+    wedge_dir = StringOutput(verbose_name="Wedge Direction")
 
     expected_width = FloatOutput()
-    inside_wedge_width = FloatOutput()
-    outside_wedge_width = FloatOutput()
-    slice_width = FloatOutput()
+    inside_wedge_width = FloatOutput(reset_on_analysis=True)
+    outside_wedge_width = FloatOutput(reset_on_analysis=True)
+    slice_width = FloatOutput(reset_on_analysis=True)
 
     inside_wedge = InputRectangleROI()
     outside_wedge = InputRectangleROI()
@@ -139,8 +141,6 @@ class TO2ASliceWidth(PhantomModule):
                 inside_prof = self.inside_wedge.roi.h_profile
                 outside_prof = self.outside_wedge.roi.h_profile
                 pix_size = self.viewer.image.pixel_size[2]
-
-            self.expected_width.value = self.viewer.image.pixel_size[0]
 
             inside_prof_diff = np.diff(inside_prof)
             outside_prof_diff = np.diff(outside_prof)
