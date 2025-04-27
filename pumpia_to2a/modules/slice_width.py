@@ -11,7 +11,7 @@ from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
 from pumpia.module_handling.in_outs.simple import FloatInput, PercInput, FloatOutput, StringOutput
 from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
-from pumpia.utilities.feature_utils import flat_top_gauss_integral
+from pumpia.utilities.feature_utils import split_gauss_integral
 
 from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
 
@@ -104,8 +104,8 @@ class TO2ASliceWidth(PhantomModule):
             inside_roi = RectangleROI(image,
                                       inside_xmin,
                                       inside_ymin,
-                                      inside_xmax,
-                                      inside_ymax,
+                                      inside_xmax - inside_xmin,
+                                      inside_ymax - inside_ymin,
                                       slice_num=image.current_slice,
                                       replace=True)
             self.inside_wedge.register_roi(inside_roi)
@@ -113,8 +113,8 @@ class TO2ASliceWidth(PhantomModule):
             outside_roi = RectangleROI(image,
                                        outside_xmin,
                                        outside_ymin,
-                                       outside_xmax,
-                                       outside_ymax,
+                                       outside_xmax - outside_xmin,
+                                       outside_ymax - outside_ymin,
                                        slice_num=image.current_slice,
                                        replace=True)
             self.outside_wedge.register_roi(outside_roi)
@@ -160,7 +160,7 @@ class TO2ASliceWidth(PhantomModule):
             in_shp[0] = in_shp[0] + 1
             in_indeces = np.indices(in_shp)[0]
 
-            in_fit, _ = curve_fit(flat_top_gauss_integral,
+            in_fit, _ = curve_fit(split_gauss_integral,
                                   in_indeces,
                                   inside_prof,
                                   init_in)
@@ -180,7 +180,7 @@ class TO2ASliceWidth(PhantomModule):
             out_shp[0] = out_shp[0] + 1
             out_indeces = np.indices(out_shp)[0]
 
-            out_fit, _ = curve_fit(flat_top_gauss_integral,
+            out_fit, _ = curve_fit(split_gauss_integral,
                                    out_indeces,
                                    outside_prof,
                                    init_out)

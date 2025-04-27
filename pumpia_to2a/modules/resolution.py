@@ -219,48 +219,48 @@ class TO2AResolution(PhantomModule):
             horizontal_2mm_roi = RectangleROI(image,
                                               horizontal_2mm_xmin,
                                               horizontal_2mm_ymin,
-                                              horizontal_2mm_xmax,
-                                              horizontal_2mm_ymax,
+                                              horizontal_2mm_xmax - horizontal_2mm_xmin,
+                                              horizontal_2mm_ymax - horizontal_2mm_ymin,
                                               replace=True)
             self.horizontal_2_roi.register_roi(horizontal_2mm_roi)
 
             horizontal_1_5mm_roi = RectangleROI(image,
                                                 horizontal_1_5mm_xmin,
                                                 horizontal_1_5mm_ymin,
-                                                horizontal_1_5mm_xmax,
-                                                horizontal_1_5mm_ymax,
+                                                horizontal_1_5mm_xmax - horizontal_1_5mm_xmin,
+                                                horizontal_1_5mm_ymax - horizontal_1_5mm_ymin,
                                                 replace=True)
             self.horizontal_1_5_roi.register_roi(horizontal_1_5mm_roi)
 
             horizontal_1mm_roi = RectangleROI(image,
                                               horizontal_1mm_xmin,
                                               horizontal_1mm_ymin,
-                                              horizontal_1mm_xmax,
-                                              horizontal_1mm_ymax,
+                                              horizontal_1mm_xmax - horizontal_1mm_xmin,
+                                              horizontal_1mm_ymax - horizontal_1mm_ymin,
                                               replace=True)
             self.horizontal_1_roi.register_roi(horizontal_1mm_roi)
 
             vertical_2mm_roi = RectangleROI(image,
                                             vertical_2mm_xmin,
                                             vertical_2mm_ymin,
-                                            vertical_2mm_xmax,
-                                            vertical_2mm_ymax,
+                                            vertical_2mm_xmax - vertical_2mm_xmin,
+                                            vertical_2mm_ymax - vertical_2mm_ymin,
                                             replace=True)
             self.vertical_2_roi.register_roi(vertical_2mm_roi)
 
             vertical_1_5mm_roi = RectangleROI(image,
                                               vertical_1_5mm_xmin,
                                               vertical_1_5mm_ymin,
-                                              vertical_1_5mm_xmax,
-                                              vertical_1_5mm_ymax,
+                                              vertical_1_5mm_xmax - vertical_1_5mm_xmin,
+                                              vertical_1_5mm_ymax - vertical_1_5mm_ymin,
                                               replace=True)
             self.vertical_1_5_roi.register_roi(vertical_1_5mm_roi)
 
             vertical_1mm_roi = RectangleROI(image,
                                             vertical_1mm_xmin,
                                             vertical_1mm_ymin,
-                                            vertical_1mm_xmax,
-                                            vertical_1mm_ymax,
+                                            vertical_1mm_xmax - vertical_1mm_xmin,
+                                            vertical_1mm_ymax - vertical_1mm_ymin,
                                             replace=True)
             self.vertical_1_roi.register_roi(vertical_1mm_roi)
 
