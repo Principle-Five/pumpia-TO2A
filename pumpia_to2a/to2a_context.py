@@ -277,8 +277,8 @@ class TO2AContextManager(PhantomContextManager):
             top_roi = RectangleROI(image,
                                    top_box_xmin,
                                    top_box_ymin,
-                                   top_box_xmax,
-                                   top_box_ymax,
+                                   top_box_xmax - top_box_xmin,
+                                   top_box_ymax - top_box_ymin,
                                    replace=True,
                                    name="Top")
             self.manager.add_roi(top_roi)
@@ -286,8 +286,8 @@ class TO2AContextManager(PhantomContextManager):
             bottom_roi = RectangleROI(image,
                                       bottom_box_xmin,
                                       bottom_box_ymin,
-                                      bottom_box_xmax,
-                                      bottom_box_ymax,
+                                      bottom_box_xmax - bottom_box_xmin,
+                                      bottom_box_ymax - bottom_box_ymin,
                                       replace=True,
                                       name="Bottom")
             self.manager.add_roi(bottom_roi)
@@ -295,8 +295,8 @@ class TO2AContextManager(PhantomContextManager):
             left_roi = RectangleROI(image,
                                     left_box_xmin,
                                     left_box_ymin,
-                                    left_box_xmax,
-                                    left_box_ymax,
+                                    left_box_xmax - left_box_xmin,
+                                    left_box_ymax - left_box_ymin,
                                     replace=True,
                                     name="Left")
             self.manager.add_roi(left_roi)
@@ -304,8 +304,8 @@ class TO2AContextManager(PhantomContextManager):
             right_roi = RectangleROI(image,
                                      right_box_xmin,
                                      right_box_ymin,
-                                     right_box_xmax,
-                                     right_box_ymax,
+                                     right_box_xmax - right_box_xmin,
+                                     right_box_ymax - right_box_ymin,
                                      replace=True,
                                      name="Right")
             self.manager.add_roi(right_roi)
