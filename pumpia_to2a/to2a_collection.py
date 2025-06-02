@@ -19,6 +19,7 @@ class TO2ACollection(BaseCollection):
     Collection for TO2A phantom.
     """
     context_manager_generator = TO2AContextManagerGenerator()
+    name = "TO2A Collection"
 
     viewer = MonochromeDicomViewerIO(row=0, column=0)
 
