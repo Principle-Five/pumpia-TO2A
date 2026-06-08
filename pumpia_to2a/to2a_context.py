@@ -13,9 +13,7 @@ from pumpia.file_handling.dicom_structures import Series, Instance
 from pumpia.module_handling.manager import Manager
 from pumpia.utilities.typing import DirectionType, SideType
 from pumpia.widgets.typing import ScreenUnits, Cursor, Padding, Relief, TakeFocusValue
-from pumpia.widgets.context_managers import (PhantomContextManager,
-                                             AutoPhantomManager,
-                                             PhantomContextManagerGenerator,
+from pumpia.widgets.context_managers import (AutoPhantomManager,
                                              side_map,
                                              inv_side_map,
                                              side_opts)
@@ -50,14 +48,14 @@ class TO2AContext(PhantomContext):
         self.wedges_side: SideType = wedges_side
 
 
-class TO2AContextManager(PhantomContextManager):
+class TO2AContextManager(AutoPhantomManager):
     """
     Context Manager for TO2A Phantom.
     """
     @overload
     def __init__(self,
-                 parent: tk.Misc,
-                 manager: Manager,
+                 parent: tk.Misc | None = None,
+                 manager: Manager | None = None,
                  mode: Literal["auto", "manual"] = "auto",
                  sensitivity: int = 3,
                  top_perc: int = 95,
@@ -89,8 +87,8 @@ class TO2AContextManager(PhantomContextManager):
 
     @overload
     def __init__(self,
-                 parent: tk.Misc,
-                 manager: Manager,
+                 parent: tk.Misc | None = None,
+                 manager: Manager | None = None,
                  mode: Literal["auto", "manual"] = "auto",
                  sensitivity: int = 3,
                  top_perc: int = 95,
@@ -103,8 +101,8 @@ class TO2AContextManager(PhantomContextManager):
                  **kw) -> None: ...
 
     def __init__(self,
-                 parent: tk.Misc,
-                 manager: Manager,
+                 parent: tk.Misc | None = None,
+                 manager: Manager | None = None,
                  mode: Literal["auto", "manual"] = "auto",
                  sensitivity: int = 3,
                  top_perc: int = 95,
@@ -118,21 +116,32 @@ class TO2AContextManager(PhantomContextManager):
         kw["shape"] = "ellipse"
         super().__init__(parent,
                          manager=manager,
+                         mode=mode,
+                         sensitivity=sensitivity,
+                         top_perc=top_perc,
+                         iterations=iterations,
+                         cull_perc=cull_perc,
+                         bubble_offset=bubble_offset,
+                         bubble_side=bubble_side,
                          direction=direction,
                          text=text,
                          **kw)
-        self.auto_phantom_manager = AutoPhantomManager(self,
-                                                       manager=manager,
-                                                       mode=mode,
-                                                       sensitivity=sensitivity,
-                                                       top_perc=top_perc,
-                                                       iterations=iterations,
-                                                       cull_perc=cull_perc,
-                                                       bubble_offset=bubble_offset,
-                                                       bubble_side=bubble_side,
-                                                       direction=direction,
-                                                       text="Bound Box Options",
-                                                       **kw)
+
+        self.inserts_frame: ttk.Labelframe
+
+        self.mtf_var: tk.StringVar
+        self.mtf_combo: ttk.Combobox
+        self.mtf_label: ttk.Label
+
+        self.wedge_var: tk.StringVar
+        self.wedge_combo: ttk.Combobox
+        self.wedge_label: ttk.Label
+
+        self.show_boxes_var: tk.BooleanVar
+        self.show_boxes_button: ttk.Checkbutton
+
+    def _complete_setup(self):
+        super()._complete_setup()
 
         self.inserts_frame = ttk.Labelframe(self, text="TO2A")
 
@@ -163,11 +172,11 @@ class TO2AContextManager(PhantomContextManager):
         self.show_boxes_button.grid(column=0, row=3, columnspan=2, sticky="nsew")
 
         if self.direction[0].lower() == "h":
-            self.auto_phantom_manager.grid(column=0, row=0, sticky="nsew")
-            self.inserts_frame.grid(column=1, row=0, sticky="nsew")
+            column = self.grid_size()[0]
+            self.inserts_frame.grid(column=column, row=0, sticky="nsew")
         else:
-            self.auto_phantom_manager.grid(column=0, row=0, sticky="nsew")
-            self.inserts_frame.grid(column=0, row=1, sticky="nsew")
+            row = self.grid_size()[1]
+            self.inserts_frame.grid(column=0, row=row, sticky="nsew")
 
     def get_context(self, image: Series | Instance) -> TO2AContext:
 
@@ -175,12 +184,12 @@ class TO2AContextManager(PhantomContextManager):
             slice_index = image.num_slices // 2
             image = image.instances[slice_index]
 
-        boundary_context = self.auto_phantom_manager.get_context(image)
+        boundary_context = super().get_context(image)
 
         mtf_side: SideType
         wedge_side: SideType
 
-        if self.auto_phantom_manager.mode_var.get() == "fine tune":
+        if self.mode_var.get() == "fine tune":
             mtf_side = side_map[self.mtf_var.get()]
             wedge_side = side_map[self.wedge_var.get()]
             return TO2AContext(boundary_context.xmin,
@@ -190,11 +199,13 @@ class TO2AContextManager(PhantomContextManager):
                                wedge_side,
                                mtf_side)
 
-        pixel_size = image.pixel_size
-        pixel_height = pixel_size[1]
-        pixel_width = pixel_size[2]
+        pixel_size = image.pixel_spacing
+        if pixel_size is None:
+            raise ValueError("Image has no pixel spacing.")
+        pixel_height = pixel_size[0]
+        pixel_width = pixel_size[1]
 
-        image_array = image.array[0]
+        image_array = image.current_slice_array
 
         xcent = boundary_context.xcent
         ycent = boundary_context.ycent
@@ -281,7 +292,6 @@ class TO2AContextManager(PhantomContextManager):
                                    top_box_ymax - top_box_ymin,
                                    replace=True,
                                    name="Top")
-            self.manager.add_roi(top_roi)
 
             bottom_roi = RectangleROI(image,
                                       bottom_box_xmin,
@@ -290,7 +300,6 @@ class TO2AContextManager(PhantomContextManager):
                                       bottom_box_ymax - bottom_box_ymin,
                                       replace=True,
                                       name="Bottom")
-            self.manager.add_roi(bottom_roi)
 
             left_roi = RectangleROI(image,
                                     left_box_xmin,
@@ -299,7 +308,6 @@ class TO2AContextManager(PhantomContextManager):
                                     left_box_ymax - left_box_ymin,
                                     replace=True,
                                     name="Left")
-            self.manager.add_roi(left_roi)
 
             right_roi = RectangleROI(image,
                                      right_box_xmin,
@@ -308,14 +316,19 @@ class TO2AContextManager(PhantomContextManager):
                                      right_box_ymax - right_box_ymin,
                                      replace=True,
                                      name="Right")
-            self.manager.add_roi(right_roi)
 
             cent = PointROI(image,
                             round(boundary_context.xcent),
                             round(boundary_context.ycent),
                             name="Centre",
                             replace=True)
-            self.manager.add_roi(cent)
+
+            if self.manager is not None:
+                self.manager.add_roi(top_roi)
+                self.manager.add_roi(bottom_roi)
+                self.manager.add_roi(left_roi)
+                self.manager.add_roi(right_roi)
+                self.manager.add_roi(cent)
 
         return TO2AContext(boundary_context.xmin,
                            boundary_context.xmax,
@@ -323,50 +336,3 @@ class TO2AContextManager(PhantomContextManager):
                            boundary_context.ymax,
                            wedge_side,
                            mtf_side)
-
-
-class TO2AContextManagerGenerator(PhantomContextManagerGenerator[TO2AContextManager]):
-    """
-    Generator for TO2AContextManager.
-    """
-    context_manager_type = TO2AContextManager
-
-    @overload
-    def __init__(self,
-                 *,
-                 mode: Literal["auto", "manual"] = "auto",
-                 sensitivity: int = 3,
-                 top_perc: int = 95,
-                 iterations: int = 2,
-                 cull_perc: int = 80,
-                 bubble_offset: int = 0,
-                 bubble_side: SideType = "top",
-                 direction: DirectionType = "Vertical",
-                 text: float | str = "TO2A Context",
-                 border: ScreenUnits = ...,
-                 borderwidth: ScreenUnits = ...,  # undocumented
-                 class_: str = "",
-                 cursor: Cursor = "",
-                 height: ScreenUnits = 0,
-                 labelanchor: Literal["nw", "n", "ne",
-                                      "en", "e", "es",
-                                      "se", "s", "sw",
-                                      "ws", "w", "wn"] = ...,
-                 labelwidget: tk.Misc = ...,
-                 name: str = ...,
-                 padding: Padding = ...,
-                 relief: Relief = ...,  # undocumented
-                 style: str = "",
-                 takefocus: TakeFocusValue = "",
-                 underline: int = -1,
-                 width: ScreenUnits = 0,
-                 ) -> None: ...
-
-    @overload
-    def __init__(self,
-                 **kw) -> None: ...
-
-    def __init__(self,
-                 **kw) -> None:
-        kw["shape"] = "ellipse"
-        super().__init__(**kw)

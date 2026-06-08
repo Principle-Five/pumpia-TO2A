@@ -5,14 +5,14 @@ import math
 import statistics
 
 from pumpia.module_handling.modules import PhantomModule
-from pumpia.module_handling.in_outs.roi_ios import BaseInputROI, InputLineROI
-from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
-from pumpia.module_handling.in_outs.simple import BoolInput, PercInput, FloatOutput
+from pumpia.module_handling.fields.roi_fields import LineROIField
+from pumpia.module_handling.fields.viewer_fields import MonochromeDicomViewerField
+from pumpia.module_handling.fields.simple import BoolField, PercField, FloatField
 from pumpia.image_handling.roi_structures import LineROI
 from pumpia.file_handling.dicom_structures import Series
 from pumpia.utilities.array_utils import nth_max_bounds
 
-from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
+from pumpia_to2a.to2a_context import TO2AContextManager, TO2AContext
 
 # distances in mm
 HALF_LINE_LENGTH = 100
@@ -24,37 +24,51 @@ class TO2APhantomWidth(PhantomModule):
     """
     Calculates TO2A phantom width
     """
-    context_manager_generator = TO2AContextManagerGenerator()
+    context_manager = TO2AContextManager()
     show_draw_rois_button = True
     show_analyse_button = True
-    name = "Phantom Width"
+    title = "Phantom Width"
 
-    viewer = MonochromeDicomViewerIO(row=0, column=0)
+    viewer = MonochromeDicomViewerField(row=0, column=0)
 
-    max_perc = PercInput(20, verbose_name="Width position (% of max)")
+    max_perc = PercField(20, verbose_name="Width position (% of max)")
 
-    bool_12_6 = BoolInput(verbose_name="Include 12-6 in Average")
-    bool_1_7 = BoolInput(verbose_name="Include 1-7 in Average")
-    bool_2_8 = BoolInput(verbose_name="Include 2-8 in Average")
-    bool_3_9 = BoolInput(verbose_name="Include 3-9 in Average")
-    bool_4_10 = BoolInput(verbose_name="Include 4-10 in Average")
-    bool_5_11 = BoolInput(verbose_name="Include 5-11 in Average")
+    bool_12_6 = BoolField(verbose_name="Include 12-6 in Average")
+    bool_1_7 = BoolField(verbose_name="Include 1-7 in Average")
+    bool_2_8 = BoolField(verbose_name="Include 2-8 in Average")
+    bool_3_9 = BoolField(verbose_name="Include 3-9 in Average")
+    bool_4_10 = BoolField(verbose_name="Include 4-10 in Average")
+    bool_5_11 = BoolField(verbose_name="Include 5-11 in Average")
 
-    width_12_6 = FloatOutput(verbose_name="12-6 Width", reset_on_analysis=True)
-    width_1_7 = FloatOutput(verbose_name="1-7 Width", reset_on_analysis=True)
-    width_2_8 = FloatOutput(verbose_name="2-8 Width", reset_on_analysis=True)
-    width_3_9 = FloatOutput(verbose_name="3-9 Width", reset_on_analysis=True)
-    width_4_10 = FloatOutput(verbose_name="4-10 Width", reset_on_analysis=True)
-    width_5_11 = FloatOutput(verbose_name="5-11 Width", reset_on_analysis=True)
+    width_12_6 = FloatField(verbose_name="12-6 Width",
+                            reset_on_analysis=True,
+                            read_only=True)
+    width_1_7 = FloatField(verbose_name="1-7 Width",
+                           reset_on_analysis=True,
+                           read_only=True)
+    width_2_8 = FloatField(verbose_name="2-8 Width",
+                           reset_on_analysis=True,
+                           read_only=True)
+    width_3_9 = FloatField(verbose_name="3-9 Width",
+                           reset_on_analysis=True,
+                           read_only=True)
+    width_4_10 = FloatField(verbose_name="4-10 Width",
+                            reset_on_analysis=True,
+                            read_only=True)
+    width_5_11 = FloatField(verbose_name="5-11 Width",
+                            reset_on_analysis=True,
+                            read_only=True)
 
-    average_width = FloatOutput(verbose_name="Average Phantom Width", reset_on_analysis=True)
+    average_width = FloatField(verbose_name="Average Phantom Width",
+                               reset_on_analysis=True,
+                               read_only=True)
 
-    line_12_6 = InputLineROI(name="12-6 Line")
-    line_1_7 = InputLineROI(name="1-7 Line")
-    line_2_8 = InputLineROI(name="2-8 Line")
-    line_3_9 = InputLineROI(name="3-9 Line")
-    line_4_10 = InputLineROI(name="4-10 Line")
-    line_5_11 = InputLineROI(name="5-11 Line")
+    line_12_6 = LineROIField(name="12-6 Line")
+    line_1_7 = LineROIField(name="1-7 Line")
+    line_2_8 = LineROIField(name="2-8 Line")
+    line_3_9 = LineROIField(name="3-9 Line")
+    line_4_10 = LineROIField(name="4-10 Line")
+    line_5_11 = LineROIField(name="5-11 Line")
 
     def draw_rois(self, context: TO2AContext, batch: bool = False) -> None:
 
@@ -65,9 +79,11 @@ class TO2APhantomWidth(PhantomModule):
                 slice_index = image.num_slices // 2
                 image = image.instances[slice_index]
 
-            pixel_size = image.pixel_size
-            pixel_height = pixel_size[1]
-            pixel_width = pixel_size[2]
+            pixel_size = image.pixel_spacing
+            if pixel_size is None:
+                return
+            pixel_height = pixel_size[0]
+            pixel_width = pixel_size[1]
 
             xcent = context.xcent
             ycent = context.ycent
@@ -156,7 +172,7 @@ class TO2APhantomWidth(PhantomModule):
                           replace=True)
             self.line_1_7.register_roi(roi)
 
-    def post_roi_register(self, roi_input: BaseInputROI):
+    def post_roi_register(self, roi_input: LineROIField):
         if (roi_input.roi is not None
             and self.manager is not None
                 and roi_input in self.rois):
@@ -185,9 +201,11 @@ class TO2APhantomWidth(PhantomModule):
                 slice_index = image.num_slices // 2
                 image = image.instances[slice_index]
 
-            pixel_size = image.pixel_size
-            pixel_height = pixel_size[1]
-            pixel_width = pixel_size[2]
+            pixel_size = image.pixel_spacing
+            if pixel_size is None:
+                return
+            pixel_height = pixel_size[0]
+            pixel_width = pixel_size[1]
 
             prof_12_6 = self.line_12_6.roi.profile
             prof_1_7 = self.line_1_7.roi.profile
@@ -196,44 +214,44 @@ class TO2APhantomWidth(PhantomModule):
             prof_4_10 = self.line_4_10.roi.profile
             prof_5_11 = self.line_5_11.roi.profile
 
-            divisor = 100 / self.max_perc.value
+            divisor = 100 / self.max_perc
 
             lengths = []
 
             unit_length_12_6 = pixel_height
             width_12_6 = nth_max_bounds(prof_12_6, divisor).difference * unit_length_12_6
-            self.width_12_6.value = width_12_6
-            if self.bool_12_6.value:
+            self.width_12_6 = width_12_6
+            if self.bool_12_6:
                 lengths.append(width_12_6)
 
             unit_length_1_7 = math.dist([pixel_height * COS_PI_6, pixel_width * COS_PI_3], [0, 0])
             width_1_7 = nth_max_bounds(prof_1_7, divisor).difference * unit_length_1_7
-            self.width_1_7.value = width_1_7
-            if self.bool_1_7.value:
+            self.width_1_7 = width_1_7
+            if self.bool_1_7:
                 lengths.append(width_1_7)
 
             unit_length_2_8 = math.dist([pixel_height * COS_PI_3, pixel_width * COS_PI_6], [0, 0])
             width_2_8 = nth_max_bounds(prof_2_8, divisor).difference * unit_length_2_8
-            self.width_2_8.value = width_2_8
-            if self.bool_2_8.value:
+            self.width_2_8 = width_2_8
+            if self.bool_2_8:
                 lengths.append(width_2_8)
 
             unit_length_3_9 = pixel_width
             width_3_9 = nth_max_bounds(prof_3_9, divisor).difference * unit_length_3_9
-            self.width_3_9.value = width_3_9
-            if self.bool_3_9.value:
+            self.width_3_9 = width_3_9
+            if self.bool_3_9:
                 lengths.append(width_3_9)
 
             unit_length_4_10 = math.dist([pixel_height * COS_PI_3, pixel_width * COS_PI_6], [0, 0])
             width_4_10 = nth_max_bounds(prof_4_10, divisor).difference * unit_length_4_10
-            self.width_4_10.value = width_4_10
-            if self.bool_4_10.value:
+            self.width_4_10 = width_4_10
+            if self.bool_4_10:
                 lengths.append(width_4_10)
 
             unit_length_5_11 = math.dist([pixel_height * COS_PI_6, pixel_width * COS_PI_3], [0, 0])
             width_5_11 = nth_max_bounds(prof_5_11, divisor).difference * unit_length_5_11
-            self.width_5_11.value = width_5_11
-            if self.bool_5_11.value:
+            self.width_5_11 = width_5_11
+            if self.bool_5_11:
                 lengths.append(width_5_11)
 
-            self.average_width.value = statistics.fmean(lengths)
+            self.average_width = statistics.fmean(lengths)

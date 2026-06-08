@@ -2,15 +2,15 @@
 Resolution inserts of TO2A Phantom
 """
 from pumpia.module_handling.modules import PhantomModule
-from pumpia.module_handling.in_outs.roi_ios import BaseInputROI, InputRectangleROI
-from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
-from pumpia.module_handling.in_outs.simple import PercInput, StringOutput, FloatOutput
+from pumpia.module_handling.fields.roi_fields import RectangleROIField
+from pumpia.module_handling.fields.viewer_fields import MonochromeDicomViewerField
+from pumpia.module_handling.fields.simple import PercField, StringField, FloatField
 from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
 from pumpia.file_handling.dicom_tags import MRTags
 from pumpia.utilities.array_utils import nth_max_troughs
 
-from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
+from pumpia_to2a.to2a_context import TO2AContextManager, TO2AContext
 
 # distances in mm
 WIDTHS = 11
@@ -36,43 +36,52 @@ class TO2AResolution(PhantomModule):
     """
     Calculates resolution using TO2A phantom inserts
     """
-    context_manager_generator = TO2AContextManagerGenerator()
+    context_manager = TO2AContextManager()
     show_draw_rois_button = True
     show_analyse_button = True
-    name = "Resolution"
+    title = "Resolution"
 
-    viewer = MonochromeDicomViewerIO(row=0, column=0)
+    viewer = MonochromeDicomViewerField(row=0, column=0)
 
-    max_perc = PercInput(50, verbose_name="Width position (% of max)")
+    max_perc = PercField(50, verbose_name="Width position (% of max)")
 
-    phase_dir = StringOutput(verbose_name="Phase Encode Direction",
-                             reset_on_analysis=True)
-    phase_pix = FloatOutput(verbose_name="Phase Pixel Size",
-                            reset_on_analysis=True)
-    freq_pix = FloatOutput(verbose_name="Frequency Pixel Size",
-                           reset_on_analysis=True)
+    phase_dir = StringField(verbose_name="Phase Encode Direction",
+                            reset_on_analysis=True,
+                            read_only=True)
+    phase_pix = FloatField(verbose_name="Phase Pixel Size",
+                           reset_on_analysis=True,
+                           read_only=True)
+    freq_pix = FloatField(verbose_name="Frequency Pixel Size",
+                          reset_on_analysis=True,
+                          read_only=True)
 
-    phase_2 = StringOutput(verbose_name="Phase Encode Direction 2mm",
-                           reset_on_analysis=True)
-    phase_1_5 = StringOutput(verbose_name="Phase Encode Direction 1.5mm",
-                             reset_on_analysis=True)
-    phase_1 = StringOutput(verbose_name="Phase Encode Direction 1mm",
-                           reset_on_analysis=True)
+    phase_2 = StringField(verbose_name="Phase Encode Direction 2mm",
+                          reset_on_analysis=True,
+                          read_only=True)
+    phase_1_5 = StringField(verbose_name="Phase Encode Direction 1.5mm",
+                            reset_on_analysis=True,
+                            read_only=True)
+    phase_1 = StringField(verbose_name="Phase Encode Direction 1mm",
+                          reset_on_analysis=True,
+                          read_only=True)
 
-    freq_2 = StringOutput(verbose_name="Frequency Encode Direction 2mm",
-                          reset_on_analysis=True)
-    freq_1_5 = StringOutput(verbose_name="Frequency Encode Direction 1.5mm",
-                            reset_on_analysis=True)
-    freq_1 = StringOutput(verbose_name="Frequency Encode Direction 1mm",
-                          reset_on_analysis=True)
+    freq_2 = StringField(verbose_name="Frequency Encode Direction 2mm",
+                         reset_on_analysis=True,
+                         read_only=True)
+    freq_1_5 = StringField(verbose_name="Frequency Encode Direction 1.5mm",
+                           reset_on_analysis=True,
+                           read_only=True)
+    freq_1 = StringField(verbose_name="Frequency Encode Direction 1mm",
+                         reset_on_analysis=True,
+                         read_only=True)
 
-    horizontal_2_roi = InputRectangleROI(name="Horizontal 2mm")
-    horizontal_1_5_roi = InputRectangleROI(name="Horizontal 1.5mm")
-    horizontal_1_roi = InputRectangleROI(name="Horizontal 1mm insert")
+    horizontal_2_roi = RectangleROIField(name="Horizontal 2mm")
+    horizontal_1_5_roi = RectangleROIField(name="Horizontal 1.5mm")
+    horizontal_1_roi = RectangleROIField(name="Horizontal 1mm insert")
 
-    vertical_2_roi = InputRectangleROI(name="Vertical 2mm insert")
-    vertical_1_5_roi = InputRectangleROI(name="Vertical 1.5mm insert")
-    vertical_1_roi = InputRectangleROI(name="Vertical 1mm insert")
+    vertical_2_roi = RectangleROIField(name="Vertical 2mm insert")
+    vertical_1_5_roi = RectangleROIField(name="Vertical 1.5mm insert")
+    vertical_1_roi = RectangleROIField(name="Vertical 1mm insert")
 
     def draw_rois(self, context: TO2AContext, batch: bool = False) -> None:
 
@@ -83,9 +92,11 @@ class TO2AResolution(PhantomModule):
                 slice_index = image.num_slices // 2
                 image = image.instances[slice_index]
 
-            pixel_size = image.pixel_size
-            pixel_height = pixel_size[1]
-            pixel_width = pixel_size[2]
+            pixel_size = image.pixel_spacing
+            if pixel_size is None:
+                return
+            pixel_height = pixel_size[0]
+            pixel_width = pixel_size[1]
 
             wedge_loc = context.wedges_side
             mtf_loc = context.mtf_side
@@ -265,7 +276,7 @@ class TO2AResolution(PhantomModule):
                                             replace=True)
             self.vertical_1_roi.register_roi(vertical_1mm_roi)
 
-    def post_roi_register(self, roi_input: BaseInputROI):
+    def post_roi_register(self, roi_input: RectangleROIField):
         if (roi_input.roi is not None
             and self.manager is not None
                 and roi_input in self.rois):
@@ -295,7 +306,7 @@ class TO2AResolution(PhantomModule):
             horizontal_1_5_prof = self.horizontal_1_5_roi.roi.h_profile
             horizontal_2_prof = self.horizontal_2_roi.roi.h_profile
 
-            divisor = 100 / self.max_perc.value
+            divisor = 100 / self.max_perc
 
             vertical_1_n_seen = len(nth_max_troughs(vertical_1_prof, divisor))
             vertical_1_5_n_seen = len(nth_max_troughs(vertical_1_5_prof, divisor))
@@ -305,78 +316,80 @@ class TO2AResolution(PhantomModule):
             horizontal_2_n_seen = len(nth_max_troughs(horizontal_2_prof, divisor))
 
             if isinstance(self.viewer.image, Series):
-                phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection, 0)
+                phase_dir = self.viewer.image.get_value(MRTags.InPlanePhaseEncodingDirection, get_first=True)
             else:
-                phase_dir = self.viewer.image.get_tag(MRTags.InPlanePhaseEncodingDirection)
+                phase_dir = self.viewer.image.get_value(MRTags.InPlanePhaseEncodingDirection, get_first=True)
 
-            self.phase_dir.value = phase_dir  # type: ignore
+            self.phase_dir = phase_dir
 
-            pixel_size = self.viewer.image.pixel_size
-            pixel_height = pixel_size[1]
-            pixel_width = pixel_size[2]
+            pixel_size = self.viewer.image.pixel_spacing
+            if pixel_size is None:
+                return
+            pixel_height = pixel_size[0]
+            pixel_width = pixel_size[1]
 
             if phase_dir == "ROW":
-                self.phase_pix.value = pixel_height
-                self.freq_pix.value = pixel_width
+                self.phase_pix = pixel_height
+                self.freq_pix = pixel_width
                 if vertical_1_n_seen == 5:
-                    self.phase_1.value = TICK
+                    self.phase_1 = TICK
                 else:
-                    self.phase_1.value = CROSS
+                    self.phase_1 = CROSS
 
                 if vertical_1_5_n_seen == 5:
-                    self.phase_1_5.value = TICK
+                    self.phase_1_5 = TICK
                 else:
-                    self.phase_1_5.value = CROSS
+                    self.phase_1_5 = CROSS
 
                 if vertical_2_n_seen == 5:
-                    self.phase_2.value = TICK
+                    self.phase_2 = TICK
                 else:
-                    self.phase_2.value = CROSS
+                    self.phase_2 = CROSS
 
                 if horizontal_1_n_seen == 5:
-                    self.freq_1.value = TICK
+                    self.freq_1 = TICK
                 else:
-                    self.freq_1.value = CROSS
+                    self.freq_1 = CROSS
 
                 if horizontal_1_5_n_seen == 5:
-                    self.freq_1_5.value = TICK
+                    self.freq_1_5 = TICK
                 else:
-                    self.freq_1_5.value = CROSS
+                    self.freq_1_5 = CROSS
 
                 if horizontal_2_n_seen == 5:
-                    self.freq_2.value = TICK
+                    self.freq_2 = TICK
                 else:
-                    self.freq_2.value = CROSS
+                    self.freq_2 = CROSS
 
             else:
-                self.phase_pix.value = pixel_width
-                self.freq_pix.value = pixel_height
+                self.phase_pix = pixel_width
+                self.freq_pix = pixel_height
                 if horizontal_1_n_seen == 5:
-                    self.phase_1.value = TICK
+                    self.phase_1 = TICK
                 else:
-                    self.phase_1.value = CROSS
+                    self.phase_1 = CROSS
 
                 if horizontal_1_5_n_seen == 5:
-                    self.phase_1_5.value = TICK
+                    self.phase_1_5 = TICK
                 else:
-                    self.phase_1_5.value = CROSS
+                    self.phase_1_5 = CROSS
 
                 if horizontal_2_n_seen == 5:
-                    self.phase_2.value = TICK
+                    self.phase_2 = TICK
                 else:
-                    self.phase_2.value = CROSS
+                    self.phase_2 = CROSS
 
                 if vertical_1_n_seen == 5:
-                    self.freq_1.value = TICK
+                    self.freq_1 = TICK
                 else:
-                    self.freq_1.value = CROSS
+                    self.freq_1 = CROSS
 
                 if vertical_1_5_n_seen == 5:
-                    self.freq_1_5.value = TICK
+                    self.freq_1_5 = TICK
                 else:
-                    self.freq_1_5.value = CROSS
+                    self.freq_1_5 = CROSS
 
                 if vertical_2_n_seen == 5:
-                    self.freq_2.value = TICK
+                    self.freq_2 = TICK
                 else:
-                    self.freq_2.value = CROSS
+                    self.freq_2 = CROSS

@@ -6,14 +6,14 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 from pumpia.module_handling.modules import PhantomModule
-from pumpia.module_handling.in_outs.roi_ios import BaseInputROI, InputRectangleROI
-from pumpia.module_handling.in_outs.viewer_ios import MonochromeDicomViewerIO
-from pumpia.module_handling.in_outs.simple import FloatInput, PercInput, FloatOutput, StringOutput
+from pumpia.module_handling.fields.roi_fields import RectangleROIField
+from pumpia.module_handling.fields.viewer_fields import MonochromeDicomViewerField
+from pumpia.module_handling.fields.simple import FloatField, PercField, StringField
 from pumpia.image_handling.roi_structures import RectangleROI
 from pumpia.file_handling.dicom_structures import Series
 from pumpia.utilities.feature_utils import split_gauss_integral
 
-from pumpia_to2a.to2a_context import TO2AContextManagerGenerator, TO2AContext
+from pumpia_to2a.to2a_context import TO2AContextManager, TO2AContext
 
 # distances in mm
 INSIDE_OFFSET = 40
@@ -26,25 +26,25 @@ class TO2ASliceWidth(PhantomModule):
     """
     Calculates slice width using TO2A wedges by fitting to a flat top gaussian
     """
-    context_manager_generator = TO2AContextManagerGenerator()
+    context_manager = TO2AContextManager()
     show_draw_rois_button = True
     show_analyse_button = True
-    name = "Slice Width"
+    title = "Slice Width"
 
-    viewer = MonochromeDicomViewerIO(row=0, column=0)
+    viewer = MonochromeDicomViewerField(row=0, column=0)
 
-    tan_theta = FloatInput(0.25, verbose_name="Tan of wedge angle")
-    max_perc = PercInput(50, verbose_name="Width position (% of max)")
+    tan_theta = FloatField(0.25, verbose_name="Tan of wedge angle")
+    max_perc = PercField(50, verbose_name="Width position (% of max)")
 
-    wedge_dir = StringOutput(verbose_name="Wedge Direction")
+    wedge_dir = StringField(verbose_name="Wedge Direction", read_only=True)
 
-    expected_width = FloatOutput()
-    inside_wedge_width = FloatOutput(reset_on_analysis=True)
-    outside_wedge_width = FloatOutput(reset_on_analysis=True)
-    slice_width = FloatOutput(reset_on_analysis=True)
+    expected_width = FloatField()
+    inside_wedge_width = FloatField(reset_on_analysis=True, read_only=True)
+    outside_wedge_width = FloatField(reset_on_analysis=True, read_only=True)
+    slice_width = FloatField(reset_on_analysis=True, read_only=True)
 
-    inside_wedge = InputRectangleROI()
-    outside_wedge = InputRectangleROI()
+    inside_wedge = RectangleROIField()
+    outside_wedge = RectangleROIField()
 
     def draw_rois(self, context: TO2AContext, batch: bool = False) -> None:
 
@@ -55,14 +55,18 @@ class TO2ASliceWidth(PhantomModule):
                 slice_index = image.num_slices // 2
                 image = image.instances[slice_index]
 
-            pixel_size = image.pixel_size
-            pixel_height = pixel_size[1]
-            pixel_width = pixel_size[2]
+            pixel_size = image.pixel_spacing
+            if pixel_size is None:
+                return
+            pixel_height = pixel_size[0]
+            pixel_width = pixel_size[1]
 
-            self.expected_width.value = pixel_size[0]
+            if image.slice_thickness is None:
+                return
+            self.expected_width = image.slice_thickness
 
             if context.wedges_side == "bottom" or context.wedges_side == "top":
-                self.wedge_dir.value = "Horizontal"
+                self.wedge_dir = "Horizontal"
                 box_width = ROI_WIDTH / pixel_height
                 box_length = ROI_LENGTH / pixel_width
                 inside_pix_offset = INSIDE_OFFSET / pixel_height
@@ -82,7 +86,7 @@ class TO2ASliceWidth(PhantomModule):
                     outside_ymin = round(context.ycent - outside_pix_offset - box_width)
                     outside_ymax = round(context.ycent - outside_pix_offset)
             else:
-                self.wedge_dir.value = "Vertical"
+                self.wedge_dir = "Vertical"
                 box_width = ROI_WIDTH / pixel_width
                 box_length = ROI_LENGTH / pixel_height
                 inside_pix_offset = INSIDE_OFFSET / pixel_width
@@ -120,7 +124,7 @@ class TO2ASliceWidth(PhantomModule):
                                        replace=True)
             self.outside_wedge.register_roi(outside_roi)
 
-    def post_roi_register(self, roi_input: BaseInputROI):
+    def post_roi_register(self, roi_input: RectangleROIField):
         if (roi_input.roi is not None
             and self.manager is not None
                 and (roi_input is self.inside_wedge or roi_input is self.outside_wedge)):
@@ -134,14 +138,21 @@ class TO2ASliceWidth(PhantomModule):
         if (self.inside_wedge.roi is not None
             and self.outside_wedge.roi is not None
                 and self.viewer.image is not None):
-            if self.wedge_dir.value == "Vertical":
+            if self.wedge_dir == "Vertical":
                 inside_prof = self.inside_wedge.roi.v_profile
                 outside_prof = self.outside_wedge.roi.v_profile
-                pix_size = self.viewer.image.pixel_size[1]
+                pixel_size = self.viewer.image.pixel_spacing
+                if pixel_size is None:
+                    return
+                pix_size = pixel_size[0]
+
             else:
                 inside_prof = self.inside_wedge.roi.h_profile
                 outside_prof = self.outside_wedge.roi.h_profile
-                pix_size = self.viewer.image.pixel_size[2]
+                pixel_size = self.viewer.image.pixel_spacing
+                if pixel_size is None:
+                    return
+                pix_size = pixel_size[1]
 
             inside_prof_diff = np.diff(inside_prof)
             outside_prof_diff = np.diff(outside_prof)
@@ -153,7 +164,7 @@ class TO2ASliceWidth(PhantomModule):
             else:
                 init_in_amp = init_in_min
             init_in_bl = np.min(inside_prof)
-            init_in_c = self.expected_width.value / 2
+            init_in_c = self.expected_width / 2
             init_in_a = inside_prof_diff.shape[0] / 2 - init_in_c
             init_in_b = inside_prof_diff.shape[0] / 2 + init_in_c
             init_in = (init_in_a, init_in_b, init_in_c, init_in_amp, init_in_bl)
@@ -173,7 +184,7 @@ class TO2ASliceWidth(PhantomModule):
             else:
                 init_out_amp = init_out_min
             init_out_bl = np.min(outside_prof)
-            init_out_c = self.expected_width.value / 2
+            init_out_c = self.expected_width / 2
             init_out_a = outside_prof_diff.shape[0] / 2 - init_out_c
             init_out_b = outside_prof_diff.shape[0] / 2 + init_out_c
             init_out = (init_out_a, init_out_b, init_out_c, init_out_amp, init_out_bl)
@@ -186,18 +197,18 @@ class TO2ASliceWidth(PhantomModule):
                                    outside_prof,
                                    init_out)
 
-            divisor = 100 / self.max_perc.value
+            divisor = 100 / self.max_perc
             c_coeff = 2 * math.sqrt(2 * math.log(divisor))
 
             inside_fwhm = abs(in_fit[1] - in_fit[0]) + c_coeff * in_fit[2]
             outside_fwhm = abs(out_fit[1] - out_fit[0]) + c_coeff * out_fit[2]
 
-            tan_theta = self.tan_theta.value
+            tan_theta = self.tan_theta
 
             inside_width = inside_fwhm * tan_theta * pix_size
             outside_width = outside_fwhm * tan_theta * pix_size
 
-            self.inside_wedge_width.value = inside_width
-            self.outside_wedge_width.value = outside_width
+            self.inside_wedge_width = inside_width
+            self.outside_wedge_width = outside_width
 
-            self.slice_width.value = math.sqrt(inside_width * outside_width)
+            self.slice_width = math.sqrt(inside_width * outside_width)
